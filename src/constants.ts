@@ -24,4 +24,9 @@ export const BONSAI_TOKEN_ADDRESS_LENS = IS_PRODUCTION
   ? "0x474f4cb764df9da079D94052fED39625c147C12C"
   : "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82";
 
-export const BONSAI_ACL = walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`, LENS_CHAIN_ID);
+// used by the Bonsai server to modify content files & metadata
+const DEFAULT_LENS_STORAGE_NODE_ACCOUNT = "0x21aF1185734D213D45C6236146fb81E2b0E8b821";
+export const BONSAI_ACL = walletOnly(
+  process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}` ?? DEFAULT_LENS_STORAGE_NODE_ACCOUNT ,
+  LENS_CHAIN_ID
+);
