@@ -25,12 +25,9 @@ export interface GenerationResponse {
 export enum Template {
   STORY = "story",
   IMAGE = "image",
-  INFO_AGENT = "info_agent",
   VIDEO = "video",
-  ADVENTURE_TIME_VIDEO = "adventure_time_video",
-  NFT_DOT_FUN = "nft_dot_fun",
+  INFO_AGENT = "info_agent",
   ALIEN_BANGERS = "alien_bangers",
-  EVOLVING_ART = "evolving_art",
 }
 
 /**
