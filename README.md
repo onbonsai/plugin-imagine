@@ -1,0 +1,1 @@
+# @elizaos/plugin-bonsai

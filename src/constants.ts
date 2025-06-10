@@ -1,0 +1,27 @@
+import { chains } from "@lens-chain/sdk/viem";
+import { walletOnly } from "@lens-chain/storage-client";
+export const IS_PRODUCTION = process.env.LENS_ENV !== "testnet";
+
+export const LENS_CHAIN_ID = IS_PRODUCTION ? chains.mainnet.id : chains.testnet.id;
+
+export const LENS_BONSAI_APP = IS_PRODUCTION
+  ? "0x640c9184b31467C84096EB2829309756DDbB3f44"
+  : "0x4Abd67c2c42ff2b8003C642D0d0e562A3F900805";
+
+export const LENS_BONSAI_DEFAULT_FEED = IS_PRODUCTION
+  ? "0x075083417a0e58cE665c7E0E9970187f4053928F"
+  : "0xeCb72dCabFC9288CB96aA65042b9f9cF93d10DB1";
+
+export const LENS_GLOBAL_FEED = IS_PRODUCTION
+  ? "0xcB5E109FFC0E15565082d78E68dDDf2573703580"
+  : "0x31232Cb7dE0dce17949ffA58E9E38EEeB367C871";
+
+export const BONSAI_NAMESPACE = IS_PRODUCTION
+  ? "0x1dDD492A541E16A9dC506aAEF5Aa1e3E8afAC4cC"
+  : "0x5585fddD720111909c99A835D94B16Bac28Dd569";
+
+export const BONSAI_TOKEN_ADDRESS_LENS = IS_PRODUCTION
+  ? "0x474f4cb764df9da079D94052fED39625c147C12C"
+  : "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82";
+
+export const BONSAI_ACL = walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`, LENS_CHAIN_ID);
