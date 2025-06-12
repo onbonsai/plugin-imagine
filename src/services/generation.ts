@@ -1,7 +1,6 @@
 import { createWalletClient, http, type Account } from 'viem';
-import { elizaLogger } from "@elizaos/core";
-import { wrapFetchWithPayment, decodeXPaymentResponse } from 'x402-fetch';
 import { base, baseSepolia } from 'viem/chains';
+import { wrapFetchWithPayment, decodeXPaymentResponse } from 'x402-fetch';
 
 const BONSA_API_URL_STAGING = "https://eliza-staging.onbons.ai/generation";
 const BONSAI_API_URL = "https://eliza.onbons.ai/generation"
@@ -88,7 +87,7 @@ export class GenerationService {
         throw new Error(`Failed to enhance prompt: ${response.statusText}`);
       }
 
-      elizaLogger.info(`paymentResponse: ${response.headers.get("x-payment-response") }`);
+      console.log(`paymentResponse: ${response.headers.get("x-payment-response")}`);
 
       const data = await response.json();
       return data.enhancedPrompt;
@@ -151,11 +150,11 @@ export class GenerationService {
 
       const data = await response.json();
 
-      elizaLogger.info(`paymentResponse: ${JSON.stringify(decodeXPaymentResponse(response.headers.get("x-payment-response")),null,2)}`);
+      console.log(`paymentResponse: ${JSON.stringify(decodeXPaymentResponse(response.headers.get("x-payment-response")),null,2)}`);
 
       return data;
     } catch (error) {
-      elizaLogger.error('Error creating generation:', error);
+      console.log('Error creating generation:', error);
       throw error;
     }
   }
@@ -171,7 +170,7 @@ export class GenerationService {
       const filename = url.split('/').pop() || 'image.png';
       return new File([blob], filename, { type: blob.type });
     } catch (error) {
-      elizaLogger.error('Error converting URL to File:', error);
+      console.log('Error converting URL to File:', error);
       throw error;
     }
   }
