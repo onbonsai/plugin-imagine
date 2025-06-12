@@ -6,7 +6,10 @@ Payment is handled via [x402](https://x402.org/), which enables stablecoin payme
 
 ## Installation
 If you're building on [ElizaOS](https://x.com/elizaOS), follow their instructions for [adding plugins](https://eliza.how/packages/clients/eliza-home#3-install-the-plugin)
-- You can also clone/fork this repo and copy the `plugin-bonsai/` directory into your `packages/` directory
+
+You can also clone/fork this repo and copy the `plugin-bonsai/` directory into your `packages/` directory
+
+If you simply want the generations, you can copy the contents of [`/src/services/generation.ts`](https://github.com/onbonsai/elizaos-plugin-bonsai/blob/master/src/services/generation.ts)
 
 ## Usage
 Generally, you would use this package when you want to create a specific type of content. To get an idea of what types of content you can create, check out the [Bonsai Studio](https://app.onbons.ai/studio/create).
