@@ -39,10 +39,21 @@ export enum TemplateCategory {
   CAMPFIRE = "campfire",
 }
 
+/**
+ * Service for handling generation requests to the Bonsai API.
+ * Provides functionality for enhancing prompts and creating various types of media generations.
+ */
 export class GenerationService {
   private apiUrl: string;
   private fetchWithPayment: typeof fetch;
 
+  /**
+   * Creates a new instance of GenerationService.
+   *
+   * @param {Account} account - The wallet account to use for payments
+   * @param {"base-sepolia" | "base"} [chain] - The blockchain network to use (defaults to base)
+   * @param {string} [rpc] - Optional RPC URL for the blockchain network
+   */
   constructor(account: Account, chain?: "base-sepolia" | "base", rpc?: string) {
     const client = createWalletClient({
       account,
@@ -53,6 +64,15 @@ export class GenerationService {
     this.fetchWithPayment = wrapFetchWithPayment(fetch, client, BigInt(1 * 10 ** 6)); // $1 max payment
   }
 
+  /**
+   * Enhances a given prompt using the Bonsai API, with payment handled via x402
+   *
+   * @param {Object} params - The parameters for prompt enhancement
+   * @param {string} params.prompt - The original prompt to enhance
+   * @param {string} params.template - The template to use for enhancement
+   * @returns {Promise<string>} The enhanced prompt
+   * @throws {Error} If the API request fails
+   */
   public async enhancePrompt({ prompt, template }: { prompt: string, template: string }): Promise<string> {
     try {
       // Make the API request with automatic payment handling
@@ -78,6 +98,18 @@ export class GenerationService {
     }
   }
 
+  /**
+   * Creates a new generation using the Bonsai API, with payment handled via x402
+   *
+   * @param {Object} params - The parameters for generation
+   * @param {string} params.prompt - The prompt to use for generation
+   * @param {Template} params.template - The template type to use
+   * @param {string | File} [params.image] - Optional image input (base64 string, File object, or URL)
+   * @param {string} [params.subTemplateId] - Optional sub-template identifier
+   * @param {Record<string, unknown>} [params.templateData] - Optional additional template data
+   * @returns {Promise<GenerationResponse>} The generation response containing the generated content
+   * @throws {Error} If the API request fails or if the image format is invalid
+   */
   public async create({
     prompt,
     template,
@@ -87,7 +119,7 @@ export class GenerationService {
   }: {
     prompt: string,
     template: Template,
-    image?: string | File // base64 string, File object, or URL
+    image?: string | File,
     subTemplateId?: string,
     templateData?: Record<string, unknown>,
   }): Promise<GenerationResponse> {
