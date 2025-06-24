@@ -1,9 +1,17 @@
 import { createWalletClient, http, type Account } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { wrapFetchWithPayment, decodeXPaymentResponse } from 'x402-fetch';
+import { pollForGenerationResult } from '../utils';
 
-const BONSA_API_URL_STAGING = "https://eliza-staging.onbons.ai/generation";
-const BONSAI_API_URL = "https://eliza.onbons.ai/generation"
+const BONSA_API_URL_STAGING = "https://eliza-staging.onbons.ai";
+const BONSAI_API_URL = "https://eliza.onbons.ai";
+
+interface PaymentResponse {
+  success: boolean;
+  transaction: `0x${string}`;
+  network: string;
+  payer: `0x${string}`;
+};
 
 export interface GenerationResponse {
   generation: {
@@ -16,7 +24,13 @@ export interface GenerationResponse {
     }
   }
   templateData: any;
-}
+  paymentResponse: PaymentResponse;
+};
+
+export interface EnhancePromptResponse {
+  enhanced: string;
+  paymentResponse: PaymentResponse;
+};
 
 /**
  * SmartMedia templates
@@ -30,7 +44,17 @@ export enum Template {
 }
 
 /**
- * SmartMedia categories and templates
+ * SmartMedia sub-templates
+ */
+export enum SubTemplateId {
+  ANIMAL_FRUIT = "animal_fruit",
+  ANIMAL_BRAND = "animal_brand",
+  TABLETOP_MINIATURE = "tabletop_miniature",
+  WALL_ST_BETS = "wall_st_bets",
+}
+
+/**
+ * SmartMedia categories
  */
 export enum TemplateCategory {
   EVOLVING_POST = "evolving_post",
@@ -60,7 +84,7 @@ export class GenerationService {
       chain: chain === "base-sepolia" ? baseSepolia : base,
     });
     this.apiUrl = chain === "base-sepolia" ? BONSA_API_URL_STAGING : BONSAI_API_URL;
-    this.fetchWithPayment = wrapFetchWithPayment(fetch, client, BigInt(1 * 10 ** 6)); // $1 max payment
+    this.fetchWithPayment = wrapFetchWithPayment(fetch, client, BigInt(5 * 10 ** 6)); // $5 max payment
   }
 
   /**
@@ -69,13 +93,13 @@ export class GenerationService {
    * @param {Object} params - The parameters for prompt enhancement
    * @param {string} params.prompt - The original prompt to enhance
    * @param {string} params.template - The template to use for enhancement
-   * @returns {Promise<string>} The enhanced prompt
+   * @returns {Promise<EnhancePromptResponse>} The enhanced prompt + payment response
    * @throws {Error} If the API request fails
    */
-  public async enhancePrompt({ prompt, template }: { prompt: string, template: string }): Promise<string> {
+  public async enhancePrompt({ prompt, template }: { prompt: string, template: string }): Promise<EnhancePromptResponse> {
     try {
       // Make the API request with automatic payment handling
-      const response = await this.fetchWithPayment(`${this.apiUrl}/enhance`, {
+      const response = await this.fetchWithPayment(`${this.apiUrl}/generation/enhance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +114,10 @@ export class GenerationService {
       console.log(`paymentResponse: ${response.headers.get("x-payment-response")}`);
 
       const data = await response.json();
-      return data.enhancedPrompt;
+      return {
+        enhanced: data.enhancedPrompt,
+        paymentResponse: decodeXPaymentResponse(response.headers.get("x-payment-response")),
+      };
     } catch (error) {
       console.error('Error enhancing prompt:', error);
       throw error;
@@ -106,7 +133,7 @@ export class GenerationService {
    * @param {string | File} [params.image] - Optional image input (base64 string, File object, or URL)
    * @param {string} [params.subTemplateId] - Optional sub-template identifier
    * @param {Record<string, unknown>} [params.templateData] - Optional additional template data
-   * @returns {Promise<GenerationResponse>} The generation response containing the generated content
+   * @returns {Promise<GenerationResponse>} The generation response containing the generated content + payment response
    * @throws {Error} If the API request fails or if the image format is invalid
    */
   public async create({
@@ -139,20 +166,22 @@ export class GenerationService {
       }
 
       // Make the API request with automatic payment handling
-      const response = await this.fetchWithPayment(`${this.apiUrl}/create`, {
+      const createResponse = await this.fetchWithPayment(`${this.apiUrl}/generation/create`, {
         method: 'POST',
-        body: formData,
+        body: formData
       });
+      if (!createResponse.ok) throw new Error(`Failed to create generation: ${createResponse.statusText}`);
 
-      if (!response.ok) {
-        throw new Error(`Failed to create generation: ${response.statusText}`);
-      }
+      const { taskId } = await createResponse.json();
+      if (!taskId) throw new Error('Task ID not found in response.');
 
-      const data = await response.json();
+      // Poll for the result
+      const data = await pollForGenerationResult(this.apiUrl, taskId);
 
-      console.log(`paymentResponse: ${JSON.stringify(decodeXPaymentResponse(response.headers.get("x-payment-response")),null,2)}`);
-
-      return data;
+      return {
+        ...data,
+        paymentResponse: decodeXPaymentResponse(createResponse.headers.get("x-payment-response")),
+      };
     } catch (error) {
       console.log('Error creating generation:', error);
       throw error;
