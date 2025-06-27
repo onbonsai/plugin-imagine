@@ -1,5 +1,3 @@
-import { decodeXPaymentResponse } from "x402-fetch";
-
 export const parseBase64Image = (imageBase64: string): File | undefined => {
   try {
     // Extract image type from base64 string

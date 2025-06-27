@@ -24,7 +24,7 @@
         "@lens-chain/storage-client": "^1.0.4",
         "@lens-protocol/client": "0.0.0-canary-20250527170801",
         "@lens-protocol/metadata": "^2.1.0",
-        "x402-fetch": "^0.3.3"
+        "x402-fetch": "^0.4.1"
     },
     "devDependencies": {
         "@types/node": "^22.10.5",
@@ -36,6 +36,7 @@
         "test": "vitest run"
     },
     "peerDependencies": {
+        "viem": "^2.21.58",
         "whatwg-url": "7.1.0"
     },
     "publishConfig": {

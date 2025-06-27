@@ -84,6 +84,7 @@ export class GenerationService {
       chain: chain === "base-sepolia" ? baseSepolia : base,
     });
     this.apiUrl = chain === "base-sepolia" ? BONSA_API_URL_STAGING : BONSAI_API_URL;
+    // @ts-expect-error SignerWallet vs Account?
     this.fetchWithPayment = wrapFetchWithPayment(fetch, client, BigInt(5 * 10 ** 6)); // $5 max payment
   }
 
