@@ -1,6 +1,6 @@
 {
     "name": "@elizaos/plugin-bonsai",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -19,21 +19,31 @@
         "dist"
     ],
     "dependencies": {
-        "@elizaos/core": "workspace:*",
+        "@elizaos/core": "latest",
         "@lens-chain/sdk": "^1.0.3",
-        "@lens-chain/storage-client": "^1.0.4",
-        "@lens-protocol/client": "0.0.0-canary-20250527170801",
+        "@lens-chain/storage-client": "^1.0.5",
+        "@lens-protocol/client": "0.0.0-canary-20250714123933",
         "@lens-protocol/metadata": "^2.1.0",
         "x402-fetch": "^0.4.1"
     },
     "devDependencies": {
+        "@types/bun": "latest",
         "@types/node": "^22.10.5",
-        "tsup": "8.3.5"
+        "tsup": "8.3.5",
+        "prettier": "^3.0.0",
+        "bun": "^1.2.15",
+        "typescript": "^5.0.0"
     },
     "scripts": {
-        "build": "tsup --format esm --dts",
-        "dev": "tsup --format esm --dts --watch",
-        "test": "vitest run"
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "lint": "prettier --write ./src",
+        "clean": "rm -rf dist .turbo node_modules .turbo-tsconfig.json tsconfig.tsbuildinfo",
+        "format": "prettier --write ./src",
+        "format:check": "prettier --check ./src",
+        "test": "bun test",
+        "test:watch": "bun test --watch",
+        "test:coverage": "bun test --coverage"
     },
     "peerDependencies": {
         "viem": "^2.21.58",
@@ -47,12 +57,12 @@
         "pluginParameters": {
             "EVM_PRIVATE_KEY": {
                 "type": "string",
-                "minLength": 1,
+                "required": true,
                 "description": "Expected private key for the agent's EVM wallet"
             },
             "BASE_RPC_URL": {
                 "type": "string",
-                "minLength": 0,
+                "required": false,
                 "description": "Optinoal RCP URL for Base network transactions"
             }
         }

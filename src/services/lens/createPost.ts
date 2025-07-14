@@ -1,4 +1,4 @@
-import { type SessionClient, uri, postId, type URI, type BigDecimal, txHash, evmAddress, type BlockchainData } from "@lens-protocol/client";
+import { type SessionClient, uri, postId, type URI, type BigDecimal, txHash, evmAddress, type BlockchainData, AnyPost } from "@lens-protocol/client";
 import { fetchPost, post } from "@lens-protocol/client/actions";
 import {
   textOnly,
@@ -254,7 +254,7 @@ export const createPost = async (
     let attempts = 0;
     do {
       post = await fetchPost(lensClient, { txHash: txHash(result.value as `0x${string}`) });
-      post = post.value;
+      if (post.isOk()) post = post.value;
       if (!post) {
         if (++attempts === 3) return;
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -263,7 +263,7 @@ export const createPost = async (
 
     if (post) {
       return {
-        postId: post.slug as string, // slug is shorter version of id
+        postId: (post as AnyPost).slug as string, // slug is shorter version of id
         uri: contentUri,
       };
     }

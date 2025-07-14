@@ -24,12 +24,12 @@ export interface GenerationResponse {
     }
   }
   templateData: any;
-  paymentResponse: PaymentResponse;
+  paymentResponse: PaymentResponse | null;
 };
 
 export interface EnhancePromptResponse {
   enhanced: string;
-  paymentResponse: PaymentResponse;
+  paymentResponse: PaymentResponse | null;
 };
 
 /**
@@ -112,12 +112,12 @@ export class GenerationService {
         throw new Error(`Failed to enhance prompt: ${response.statusText}`);
       }
 
-      console.log(`paymentResponse: ${response.headers.get("x-payment-response")}`);
+      const data = await response.json() as { enhancedPrompt: string };
+      const paymentResponse = response.headers.get("x-payment-response");
 
-      const data = await response.json();
       return {
         enhanced: data.enhancedPrompt,
-        paymentResponse: decodeXPaymentResponse(response.headers.get("x-payment-response")),
+        paymentResponse: paymentResponse ? decodeXPaymentResponse(paymentResponse) : null,
       };
     } catch (error) {
       console.error('Error enhancing prompt:', error);
@@ -173,15 +173,16 @@ export class GenerationService {
       });
       if (!createResponse.ok) throw new Error(`Failed to create generation: ${createResponse.statusText}`);
 
-      const { taskId } = await createResponse.json();
+      const { taskId } = await createResponse.json() as { taskId?: string };
       if (!taskId) throw new Error('Task ID not found in response.');
 
       // Poll for the result
       const data = await pollForGenerationResult(this.apiUrl, taskId);
+      const paymentResponse = createResponse.headers.get("x-payment-response");
 
       return {
         ...data,
-        paymentResponse: decodeXPaymentResponse(createResponse.headers.get("x-payment-response")),
+        paymentResponse: paymentResponse ? decodeXPaymentResponse(paymentResponse) : null,
       };
     } catch (error) {
       console.log('Error creating generation:', error);
@@ -198,6 +199,7 @@ export class GenerationService {
 
       const blob = await response.blob();
       const filename = url.split('/').pop() || 'image.png';
+      // @ts-ignore blob
       return new File([blob], filename, { type: blob.type });
     } catch (error) {
       console.log('Error converting URL to File:', error);
