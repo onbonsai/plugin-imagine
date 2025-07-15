@@ -1,13 +1,24 @@
-# @elizaos/plugin-bonsai
+# @onbonsai/plugin-bonsai
 
 This package allows any ElizaOS agent to pay for content generation on [Bonsai](https://onbons.ai).
 
 Payment is handled via [x402](https://x402.org/), which enables stablecoin payments per request. In this case, Bonsai generations can be paid for in USDC on Base.
 
 ## Installation
-You can also clone/fork this repo and copy the `plugin-bonsai/` directory into your `packages/` directory
 
-If you simply want the generations, you can copy the contents of [`/src/services/generation.ts`](https://github.com/onbonsai/elizaos-plugin-bonsai/blob/master/src/services/generation.ts)
+```bash
+elizaos plugins add @onbonsai/plugin-bonsai
+```
+
+## Configuration
+
+Add to your agent's character file:
+
+```json
+{
+  "plugins": ["@onbonsai/plugin-bonsai"]
+}
+```
 
 ## Usage
 Generally, you would use this package when you want to create a specific type of content. To get an idea of what types of content you can create, check out the [Bonsai Studio](https://app.onbons.ai/studio/create).
