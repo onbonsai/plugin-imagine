@@ -3,8 +3,7 @@ import { base, baseSepolia } from 'viem/chains';
 import { wrapFetchWithPayment, decodeXPaymentResponse } from 'x402-fetch';
 import { pollForGenerationResult } from '../utils';
 
-const BONSA_API_URL_STAGING = "https://eliza-staging.onbons.ai";
-const BONSAI_API_URL = "https://eliza.onbons.ai";
+import { GENERATION_API_URL } from '../constants';
 
 interface PaymentResponse {
   success: boolean;
@@ -14,6 +13,7 @@ interface PaymentResponse {
 };
 
 export interface GenerationResponse {
+  id: string; // taskId, should be set to agentId / agentMessageId for createSmartMedia
   generation: {
     text?: string;
     image?: string; // base64
@@ -24,47 +24,12 @@ export interface GenerationResponse {
     }
   }
   templateData: any;
-  paymentResponse: PaymentResponse | null;
+  paymentResponse: PaymentResponse;
 };
 
-export interface EnhancePromptResponse {
-  enhanced: string;
-  paymentResponse: PaymentResponse | null;
-};
 
 /**
- * SmartMedia templates
- */
-export enum Template {
-  STORY = "story",
-  IMAGE = "image",
-  VIDEO = "video",
-  INFO_AGENT = "info_agent",
-  ALIEN_BANGERS = "alien_bangers",
-}
-
-/**
- * SmartMedia sub-templates
- */
-export enum SubTemplateId {
-  ANIMAL_FRUIT = "animal_fruit",
-  ANIMAL_BRAND = "animal_brand",
-  TABLETOP_MINIATURE = "tabletop_miniature",
-  WALL_ST_BETS = "wall_st_bets",
-}
-
-/**
- * SmartMedia categories
- */
-export enum TemplateCategory {
-  EVOLVING_POST = "evolving_post",
-  EVOLVING_ART = "evolving_art",
-  CAMPFIRE = "campfire",
-}
-
-/**
- * Service for handling generation requests to the Bonsai API.
- * Provides functionality for enhancing prompts and creating various types of media generations.
+ * Service for handling generation requests to the Imagine API.
  */
 export class GenerationService {
   private apiUrl: string;
@@ -83,46 +48,10 @@ export class GenerationService {
       transport: http(rpc),
       chain: chain === "base-sepolia" ? baseSepolia : base,
     });
-    this.apiUrl = chain === "base-sepolia" ? BONSA_API_URL_STAGING : BONSAI_API_URL;
+    // Use configured generation API base URL
+    this.apiUrl = GENERATION_API_URL;
     // @ts-expect-error SignerWallet vs Account?
     this.fetchWithPayment = wrapFetchWithPayment(fetch, client, BigInt(5 * 10 ** 6)); // $5 max payment
-  }
-
-  /**
-   * Enhances a given prompt using the Bonsai API, with payment handled via x402
-   *
-   * @param {Object} params - The parameters for prompt enhancement
-   * @param {string} params.prompt - The original prompt to enhance
-   * @param {string} params.template - The template to use for enhancement
-   * @returns {Promise<EnhancePromptResponse>} The enhanced prompt + payment response
-   * @throws {Error} If the API request fails
-   */
-  public async enhancePrompt({ prompt, template }: { prompt: string, template: string }): Promise<EnhancePromptResponse> {
-    try {
-      // Make the API request with automatic payment handling
-      const response = await this.fetchWithPayment(`${this.apiUrl}/generation/enhance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, template }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to enhance prompt: ${response.statusText}`);
-      }
-
-      const data = await response.json() as { enhancedPrompt: string };
-      const paymentResponse = response.headers.get("x-payment-response");
-
-      return {
-        enhanced: data.enhancedPrompt,
-        paymentResponse: paymentResponse ? decodeXPaymentResponse(paymentResponse) : null,
-      };
-    } catch (error) {
-      console.error('Error enhancing prompt:', error);
-      throw error;
-    }
   }
 
   /**
@@ -130,35 +59,44 @@ export class GenerationService {
    *
    * @param {Object} params - The parameters for generation
    * @param {string} params.prompt - The prompt to use for generation
-   * @param {Template} params.template - The template type to use
    * @param {string | File} [params.image] - Optional image input (base64 string, File object, or URL)
-   * @param {string} [params.subTemplateId] - Optional sub-template identifier
-   * @param {Record<string, unknown>} [params.templateData] - Optional additional template data
+   * @param {Record<string, unknown>} [params.templateData] - Optional additional template data (videoModel?: 'sora'; soraVideoId?: string; duration?: number)
+   * @param {string} [params.remixPostId] - Optional remix post id
+   * @param {string} [params.rootRemixPostId] - Optional root remix post id
+   * @param {string} [params.remixToken] - Optional remix token
+   * @param {string} [params.soraVideoId] - Optional sora video id (also in templateData)
    * @returns {Promise<GenerationResponse>} The generation response containing the generated content + payment response
    * @throws {Error} If the API request fails or if the image format is invalid
    */
   public async create({
     prompt,
-    template,
     image,
-    subTemplateId,
-    templateData
+    templateData,
+    seed,
+    remixPostId,
+    rootRemixPostId,
+    remixToken,
+    soraVideoId,
   }: {
     prompt: string,
-    template: Template,
     image?: string | File,
-    subTemplateId?: string,
     templateData?: Record<string, unknown>,
+    seed?: string,
+    remixPostId?: string,
+    rootRemixPostId?: string,
+    remixToken?: string,
+    soraVideoId?: string,
   }): Promise<GenerationResponse> {
     try {
       // Create FormData for multer to parse
       const formData = new FormData();
       formData.append('prompt', prompt);
-      formData.append('template', template);
-      if (subTemplateId || templateData) {
-        const _templateData = JSON.stringify({ ...(templateData || {}), subTemplateId, prompt });
-        formData.append('templateData', _templateData);
-      }
+      if (templateData) formData.append('templateData', JSON.stringify(templateData));
+      if (seed) formData.append('seed', seed);
+      if (remixPostId) formData.append('remixPostId', remixPostId);
+      if (rootRemixPostId) formData.append('rootRemixPostId', rootRemixPostId);
+      if (remixToken) formData.append('remixToken', remixToken);
+      if (soraVideoId) formData.append('soraVideoId', soraVideoId);
 
       // If image is provided, process and append it to formData
       if (image) {
@@ -173,16 +111,16 @@ export class GenerationService {
       });
       if (!createResponse.ok) throw new Error(`Failed to create generation: ${createResponse.statusText}`);
 
-      const { taskId } = await createResponse.json() as { taskId?: string };
+      const { taskId } = (await createResponse.json()) as { taskId?: string };
       if (!taskId) throw new Error('Task ID not found in response.');
 
       // Poll for the result
       const data = await pollForGenerationResult(this.apiUrl, taskId);
-      const paymentResponse = createResponse.headers.get("x-payment-response");
 
       return {
+        id: taskId,
         ...data,
-        paymentResponse: paymentResponse ? decodeXPaymentResponse(paymentResponse) : null,
+        paymentResponse: decodeXPaymentResponse(createResponse.headers.get("x-payment-response") ?? ""),
       };
     } catch (error) {
       console.log('Error creating generation:', error);
@@ -197,10 +135,10 @@ export class GenerationService {
         throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
       }
 
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
       const filename = url.split('/').pop() || 'image.png';
-      // @ts-ignore blob
-      return new File([blob], filename, { type: blob.type });
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      return new File([new Uint8Array(arrayBuffer)], filename, { type: contentType });
     } catch (error) {
       console.log('Error converting URL to File:', error);
       throw error;
@@ -223,8 +161,7 @@ export class GenerationService {
           const byteArray = new Uint8Array(byteNumbers);
           byteArrays.push(byteArray);
         }
-        const blob = new Blob(byteArrays, { type: 'image/png' });
-        return new File([blob], 'image.png', { type: 'image/png' });
+        return new File(byteArrays, 'image.png', { type: 'image/png' });
       } else if (image.startsWith('http')) {
         // Handle URL
         return await this.urlToFile(image);

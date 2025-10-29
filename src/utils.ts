@@ -14,7 +14,7 @@ export const parseBase64Image = (imageBase64: string): File | undefined => {
     const imageBuffer = Buffer.from(base64Data, "base64");
 
     // Create a file object that can be used with FormData
-    const blob = new File([imageBuffer], `bonsai_generated_${Date.now()}.${imageType}`, {
+    const blob = new File([imageBuffer], `generation_${Date.now()}.${imageType}`, {
       type: mimeType,
     });
 
@@ -27,7 +27,7 @@ export const parseBase64Image = (imageBase64: string): File | undefined => {
 };
 
 const DEFAULT_POLLING_INTERVAL = 10000; // 10 seconds
-const DEFAULT_POLLING_TIMEOUT = 300000; // 5 minutes
+const DEFAULT_POLLING_TIMEOUT = 900000; // 15 minutes
 
 export async function pollForGenerationResult(
   apiUrl: string,

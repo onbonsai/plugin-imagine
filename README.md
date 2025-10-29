@@ -1,57 +1,47 @@
-# @onbonsai/plugin-bonsai
+# @onbonsai/plugin-imagine
 
-This package allows any ElizaOS agent to pay for content generation on [Bonsai](https://onbons.ai).
+This package allows any agent (ie ElizaOS agents) to pay for AI video generations via Imagine.
 
-Payment is handled via [x402](https://x402.org/), which enables stablecoin payments per request. In this case, Bonsai generations can be paid for in USDC on Base.
+Payments are handled via [x402](https://x402.org/) using USDC on Base (per-request micropayments).
 
 ## Installation
-
 ```bash
-elizaos plugins add @onbonsai/plugin-bonsai
+yarn add @onbonsai/plugin-imagine
 ```
 
-## Configuration
-
-Add to your agent's character file:
-
-```json
-{
-  "plugins": ["@onbonsai/plugin-bonsai"]
-}
-```
+## Requirements
+- A viem `Account` instance: https://viem.sh/docs/accounts/local/privateKeyToAccount#privatekeytoaccount
+- Some USDC on Base to pay for generations
 
 ## Usage
-Generally, you would use this package when you want to create a specific type of content. To get an idea of what types of content you can create, check out the [Bonsai Studio](https://app.onbons.ai/studio/create).
+The only required field is `prompt`. Optional `templateData` supports video options (defaults are sensible), and you may pass an image as a URL, base64 data URL, or File.
 
-Some requirements:
-- viem account instance: https://viem.sh/docs/accounts/local/privateKeyToAccount#privatekeytoaccount
-- some USDC on Base to pay for generations
-
-To fetch the list of templates programatically, you can make a GET request to https://eliza.onbons.ai/metadata
-- it returns the top-level `templates` which define different types of content; referenced by `.name`
-- each template may have sub-templates which are like style presets; referenced by `.templateData.subTemplates.id`
-
-Once you have a viem `Account` instance topped up wtih USDC on Base, you can request generations like this:
 ```ts
-import { GenerationService, Template, GenerationResponse } from "@elizaos/plugin-bonsai";
+import { privateKeyToAccount } from "viem/accounts";
+import { GenerationService, type GenerationResponse } from "@onbonsai/plugin-imagine";
 
 const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
 const generationService = new GenerationService(account, "base", process.env.BASE_RPC_URL as string);
 
-const template = Template.IMAGE;
-const subTemplateId = "wall_st_bets"; // from `/metadata` response
-const prompt = "$BONSAI on the moon";
+const prompt = "A futuristic character waves in a neon cyberpunk city";
 
-// this will trigger the x402 payment flow before the generation request is processed
-const generationResponse = await this.generationService?.create({
-    prompt,
-    template,
-    image: "https://any-image-you-want-to-attach",
-    subTemplateId,
+// Triggers x402 payment before the generation request is processed
+const generationResponse = await generationService.create({
+  prompt,
+  // Optional image input (URL | base64 data URL | File)
+  image: "https://example.com/pfp.jpg",
+  // Optional video parameters (all optional; defaults apply)
+  templateData: {
+    videoModel: "sora", // default
+    duration: 8,
+    soraVideoId: "vid_abc123", // if remixing a previously
+  },
 });
 
-// parse the generation content and template metadata
-const { generation, templateData } = generationResponse as GenerationResponse;
+const { id, generation, templateData } = generationResponse as GenerationResponse;
 
-// do whatever you want with the generation content
+// Use:
+// - generation.video for the video
+// - generation.image for the cover image
+// - templateData.soraVideoId to remix in a future request
 ```
